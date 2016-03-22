@@ -91,7 +91,43 @@ void KeyExpansion() {
     i++;
   }
 }
-
+uint8_t xtime(uint8_t x)
+{
+  return ((x << 1) ^ (((x >> 7) & 1) * 0x1b));
+}
+void MixColumns() {
+  uint8_t Tmp, Tm, t;
+  for (int a = 0; a < 4; a++) {
+    t = state[(a * 4) + 0];
+    Tmp = state[(a * 4) + 0] ^ state[(a * 4) + 1] ^ state[(a * 4) + 2] ^ state[(a * 4) + 3];
+    Tm = state[(a * 4) + 0] ^ state[(a * 4) + 1]; Tm = xtime(Tm); state[(a * 4) + 0] ^= Tm ^ Tmp;
+    Tm = state[(a * 4) + 1] ^ state[(a * 4) + 2]; Tm = xtime(Tm); state[(a * 4) + 1] ^= Tm ^ Tmp;
+    Tm = state[(a * 4) + 2] ^ state[(a * 4) + 3]; Tm = xtime(Tm); state[(a * 4) + 2] ^= Tm ^ Tmp;
+    Tm = state[(a * 4) + 3] ^ t; Tm = xtime(Tm); state[(a * 4) + 3] ^= Tm ^ Tmp;
+  }
+}
+void ShiftRows() {
+  uint8_t apu, apu1;
+  //second row
+  apu = state[1];
+  state[1] = state[5];
+  state[5] = state[9];
+  state[9] = state[13];
+  state[13] = apu;
+  //third row
+  apu = state[2];
+  apu1 = state[6];
+  state[2] = state[10];
+  state[6] = state[14];
+  state[10] = apu;
+  state[14] = apu1;
+  //fourth row
+  apu = state[3];
+  state[3] = state[15];
+  state[15] = state[11];
+  state[11] = state[7];
+  state[7] = apu;
+}
 void Cipher() {
   KeyExpansion();
   uint8_t i;
@@ -109,6 +145,7 @@ void Cipher() {
       state[j] = subsBox[state[j]];
     }
 
+	//ShiftRows routine
     ShiftRows();
 
     //MixColumns routine
@@ -135,21 +172,6 @@ void Cipher() {
     }
   }
 }
-uint8_t xtime(uint8_t x)
-{
-  return ((x << 1) ^ (((x >> 7) & 1) * 0x1b));
-}
-void MixColumns() {
-  uint8_t Tmp, Tm, t;
-  for (int a = 0; a < 4; a++) {
-    t = state[(a * 4) + 0];
-    Tmp = state[(a * 4) + 0] ^ state[(a * 4) + 1] ^ state[(a * 4) + 2] ^ state[(a * 4) + 3];
-    Tm = state[(a * 4) + 0] ^ state[(a * 4) + 1]; Tm = xtime(Tm); state[(a * 4) + 0] ^= Tm ^ Tmp;
-    Tm = state[(a * 4) + 1] ^ state[(a * 4) + 2]; Tm = xtime(Tm); state[(a * 4) + 1] ^= Tm ^ Tmp;
-    Tm = state[(a * 4) + 2] ^ state[(a * 4) + 3]; Tm = xtime(Tm); state[(a * 4) + 2] ^= Tm ^ Tmp;
-    Tm = state[(a * 4) + 3] ^ t; Tm = xtime(Tm); state[(a * 4) + 3] ^= Tm ^ Tmp;
-  }
-}
 void InvMixColumns() {
   uint8_t a, b, c, d;
   for (int i = 0; i < 4; ++i)
@@ -172,28 +194,6 @@ uint8_t Multiply(uint8_t x, uint8_t y)
           ((y >> 2 & 1) * xtime(xtime(x))) ^
           ((y >> 3 & 1) * xtime(xtime(xtime(x)))) ^
           ((y >> 4 & 1) * xtime(xtime(xtime(xtime(x))))));
-}
-void ShiftRows() {
-  uint8_t apu, apu1;
-  //second row
-  apu = state[1];
-  state[1] = state[5];
-  state[5] = state[9];
-  state[9] = state[13];
-  state[13] = apu;
-  //third row
-  apu = state[2];
-  apu1 = state[6];
-  state[2] = state[10];
-  state[6] = state[14];
-  state[10] = apu;
-  state[14] = apu1;
-  //fourth row
-  apu = state[3];
-  state[3] = state[15];
-  state[15] = state[11];
-  state[11] = state[7];
-  state[7] = apu;
 }
 void InvShiftRows() {
   uint8_t apu;
@@ -259,7 +259,6 @@ void setup() {
   Serial.begin(9600);
   Serial.println("Give me a 16-character text to cipher.");
 }
-
 void loop() {
   if (Serial.available() > 15) {
     aika = millis();
